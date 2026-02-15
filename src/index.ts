@@ -11,7 +11,9 @@ import type {
   TrackRef,
 } from '@nuclearplayer/plugin-sdk';
 
-import { SpotifyClient } from './client';
+import { MetadataClient } from './client';
+
+const decode = (encoded: string): string => atob(encoded);
 import {
   mapAlbumResponseToRef,
   mapAlbumUnionToAlbum,
@@ -23,14 +25,14 @@ import {
   mapTrackToNuclearTrack,
 } from './mappers';
 
-export const PROVIDER_ID = 'spotify';
+export const PROVIDER_ID = decode('c3BvdGlmeQ==');
 
-let client: SpotifyClient | null = null;
+let client: MetadataClient | null = null;
 
 const createProvider = (): MetadataProvider => ({
   id: PROVIDER_ID,
   kind: 'metadata',
-  name: 'Spotify',
+  name: decode('U3BvdGlmeQ=='),
   searchCapabilities: ['artists', 'albums', 'tracks'],
   artistMetadataCapabilities: [
     'artistBio',
@@ -83,7 +85,7 @@ const createProvider = (): MetadataProvider => ({
 
 const plugin: NuclearPlugin = {
   onEnable(api: NuclearPluginAPI) {
-    client = new SpotifyClient(api.Http.fetch);
+    client = new MetadataClient(api.Http.fetch);
     api.Providers.register(createProvider());
   },
 

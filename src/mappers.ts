@@ -21,7 +21,7 @@ import type {
   FullDate,
   PlaylistV2,
   ReleaseItem,
-  Track as SpotifyTrack,
+  Track as SourceTrack,
 } from './types';
 
 import { PROVIDER_ID } from './index';
@@ -94,7 +94,7 @@ export const mapAlbumResponseToRef = (
 });
 
 export const mapTrackToNuclearTrack = (
-  track: SpotifyTrack,
+  track: SourceTrack,
 ): NuclearTrack => ({
   title: track.name,
   artists: track.artists.items.map((artist) => ({

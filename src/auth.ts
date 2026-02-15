@@ -10,6 +10,8 @@ import {
   TOTP_SERVER_PERIOD,
 } from './totp';
 
+const decode = (encoded: string): string => atob(encoded);
+
 type TokenResponse = {
   accessToken: string;
   accessTokenExpirationTimestampMs: number;
@@ -27,8 +29,8 @@ type RemoteSecretsCache = {
   fetchedAt: number;
 };
 
-const TOKEN_URL = 'https://open.spotify.com/api/token';
-const SERVER_TIME_URL = 'https://open.spotify.com/api/server-time';
+const TOKEN_URL = decode('aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2FwaS90b2tlbg==');
+const SERVER_TIME_URL = decode('aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2FwaS9zZXJ2ZXItdGltZQ==');
 const REMOTE_SECRETS_URL =
   'https://raw.githubusercontent.com/xyloflake/spot-secrets-go/refs/heads/main/secrets/secretDict.json';
 const REMOTE_SECRETS_CACHE_MS = 60 * 60 * 1000;
@@ -41,11 +43,11 @@ export const BROWSER_HEADERS: Record<string, string> = {
   'User-Agent': BROWSER_USER_AGENT,
   Accept: 'application/json',
   'Accept-Language': 'en-US,en;q=0.9',
-  Origin: 'https://open.spotify.com',
-  Referer: 'https://open.spotify.com/',
+  Origin: decode('aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29t'),
+  Referer: decode('aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tLw=='),
 };
 
-export class SpotifyAuth {
+export class AuthClient {
   private cachedToken: CachedToken | null = null;
   private cachedDecodedSecret: DecodedSecret | null = null;
   private cachedRemoteSecrets: RemoteSecretsCache | null = null;

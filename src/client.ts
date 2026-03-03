@@ -22,6 +22,32 @@ import { AuthClient, BROWSER_HEADERS } from './auth';
 const decode = (encoded: string): string => atob(encoded);
 
 const PATHFINDER_URL = decode('aHR0cHM6Ly9hcGktcGFydG5lci5zcG90aWZ5LmNvbS9wYXRoZmluZGVyL3YyL3F1ZXJ5');
+const PLAYLIST_URI_PREFIX = decode('c3BvdGlmeTpwbGF5bGlzdDo=');
+const PLAYLIST_HOSTNAME = decode('b3Blbi5zcG90aWZ5LmNvbQ==');
+
+export const isPlaylistUrl = (url: string): boolean => {
+  try {
+    if (url.startsWith(PLAYLIST_URI_PREFIX)) {
+      return true;
+    }
+    const parsed = new URL(url);
+    return (
+      parsed.hostname === PLAYLIST_HOSTNAME &&
+      /^\/playlist\/[a-zA-Z0-9]+/.test(parsed.pathname)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const extractPlaylistUri = (url: string): string => {
+  if (url.startsWith(PLAYLIST_URI_PREFIX)) {
+    return url;
+  }
+  const parsed = new URL(url);
+  const playlistId = parsed.pathname.split('/')[2];
+  return `${PLAYLIST_URI_PREFIX}${playlistId}`;
+};
 
 const OPERATION_HASHES: Record<OperationName, string> = {
   searchArtists: '0e6f9020a66fe15b93b3bb5c7e6484d1d8cb3775963996eaede72bac4d97e909',
@@ -132,10 +158,11 @@ export class MetadataClient {
     return response.data.albumUnion;
   }
 
-  async getPlaylist(playlistUri: string, limit = 50, offset = 0): Promise<PlaylistV2> {
+  async getPlaylist(playlistUrl: string, limit = 50, offset = 0): Promise<PlaylistV2> {
+    const uri = extractPlaylistUri(playlistUrl);
     const response = await this.pathfinderQuery<PathfinderPlaylistResponse>(
       'fetchPlaylist',
-      { uri: playlistUri, offset, limit },
+      { uri, offset, limit },
     );
     return response.data.playlistV2;
   }

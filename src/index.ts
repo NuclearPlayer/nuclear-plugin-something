@@ -6,12 +6,13 @@ import type {
   MetadataProvider,
   NuclearPlugin,
   NuclearPluginAPI,
+  PlaylistProvider,
   SearchParams,
   Track,
   TrackRef,
 } from '@nuclearplayer/plugin-sdk';
 
-import { MetadataClient } from './client';
+import { isPlaylistUrl, MetadataClient } from './client';
 
 const decode = (encoded: string): string => atob(encoded);
 import {
@@ -19,6 +20,7 @@ import {
   mapAlbumUnionToAlbum,
   mapArtistResponseToRef,
   mapArtistToArtistBio,
+  mapPlaylistToNuclearPlaylist,
   mapReleaseItemToAlbumRef,
   mapRelatedArtistToRef,
   mapTopTrackToTrackRef,
@@ -26,6 +28,7 @@ import {
 } from './mappers';
 
 export const PROVIDER_ID = decode('c3BvdGlmeQ==');
+const PLAYLIST_PROVIDER_ID = `${PROVIDER_ID}-playlists`;
 
 let client: MetadataClient | null = null;
 
@@ -83,14 +86,27 @@ const createProvider = (): MetadataProvider => ({
   },
 }) satisfies MetadataProvider;
 
+const createPlaylistProvider = (): PlaylistProvider => ({
+  id: PLAYLIST_PROVIDER_ID,
+  kind: 'playlists',
+  name: decode('U3BvdGlmeQ=='),
+  matchesUrl: isPlaylistUrl,
+  fetchPlaylistByUrl: async (url: string) => {
+    const playlist = await client!.getPlaylist(url);
+    return mapPlaylistToNuclearPlaylist(playlist);
+  },
+}) satisfies PlaylistProvider;
+
 const plugin: NuclearPlugin = {
   onEnable(api: NuclearPluginAPI) {
     client = new MetadataClient(api.Http.fetch);
     api.Providers.register(createProvider());
+    api.Providers.register(createPlaylistProvider());
   },
 
   onDisable(api: NuclearPluginAPI) {
     api.Providers.unregister(PROVIDER_ID);
+    api.Providers.unregister(PLAYLIST_PROVIDER_ID);
     client = null;
   },
 };

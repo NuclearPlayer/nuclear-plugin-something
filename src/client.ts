@@ -164,7 +164,18 @@ export class MetadataClient {
       'fetchPlaylist',
       { uri, offset, limit },
     );
-    return response.data.playlistV2;
+    const playlist = response.data.playlistV2;
+
+    while (playlist.content.items.length < playlist.content.totalCount) {
+      const nextOffset = playlist.content.items.length;
+      const nextPage = await this.pathfinderQuery<PathfinderPlaylistResponse>(
+        'fetchPlaylist',
+        { uri, offset: nextOffset, limit },
+      );
+      playlist.content.items.push(...nextPage.data.playlistV2.content.items);
+    }
+
+    return playlist;
   }
 
   async getPlaylistContents(playlistUri: string, limit = 50, offset = 0): Promise<PlaylistV2> {

@@ -8,6 +8,7 @@ import type {
   ArtistTopTrack,
   NotFound,
   OperationName,
+  PreReleaseResponseWrapper,
   PathfinderArtistOverviewResponse,
   PathfinderGetAlbumResponse,
   PathfinderPlaylistResponse,
@@ -68,6 +69,10 @@ type ArtistCacheEntry = {
 const isNotFound = (data: Track | NotFound): data is NotFound =>
   data.__typename === 'NotFound';
 
+const isAlbumResponse = (
+  item: AlbumResponseWrapper | PreReleaseResponseWrapper,
+): item is AlbumResponseWrapper => item.__typename === 'AlbumResponseWrapper';
+
 const searchVariables = (searchTerm: string, limit: number) => ({
   searchTerm,
   limit,
@@ -100,7 +105,7 @@ export class MetadataClient {
       'searchAlbums',
       searchVariables(query, limit),
     );
-    return response.data.searchV2.albumsV2.items;
+    return response.data.searchV2.albumsV2.items.filter(isAlbumResponse);
   }
 
   async searchTracks(query: string, limit: number): Promise<Track[]> {

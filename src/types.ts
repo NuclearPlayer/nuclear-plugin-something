@@ -232,9 +232,27 @@ export type SearchResultItemWrapper<Result> = {
   item: Result;
 };
 
+export type PreReleaseResponseWrapper = {
+  __typename: 'PreReleaseResponseWrapper';
+  data: {
+    __typename: 'PreRelease';
+    preReleaseContent: {
+      artists: { items: ArtistResponseWrapper[] };
+      coverArt: AlbumCoverArt;
+      name: string;
+      type: ReleaseType;
+      uri: string;
+    };
+    preSaved: boolean;
+    releaseDate: { isoString: string; precision: string };
+    timezone: string;
+    uri: string;
+  };
+};
+
 export type AlbumOrPrereleasePage = {
   __typename: 'AlbumOrPrereleasePage';
-  items: AlbumResponseWrapper[];
+  items: (AlbumResponseWrapper | PreReleaseResponseWrapper)[];
   totalCount: number;
 };
 

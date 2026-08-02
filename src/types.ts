@@ -6,7 +6,10 @@ export type OperationName =
   | 'queryArtistDiscographyAll'
   | 'getAlbum'
   | 'fetchPlaylist'
-  | 'fetchPlaylistContents';
+  | 'fetchPlaylistContents'
+  | 'searchPodcastShows'
+  | 'getPodcastShow'
+  | 'getPodcastShowEpisodes';
 
 export type CoverArtSource = {
   height: number | null;
@@ -358,5 +361,53 @@ export type PathfinderArtistOverviewResponse = {
 
 export type PathfinderGetAlbumResponse = {
   data: { albumUnion: AlbumUnion };
+  extensions: Record<string, unknown>;
+};
+
+export type PodcastShow = {
+  id: string;
+  name: string;
+  uri: string;
+  publisher: { name: string } | null;
+  description: string | null;
+  images: { url: string; width: number | null; height: number | null }[];
+};
+
+export type PodcastEpisode = {
+  id: string;
+  uri: string;
+  name: string;
+  description: string | null;
+  duration: { totalMilliseconds: number } | null;
+  releaseDate: { isoString: string } | null;
+  images: { url: string; width: number | null; height: number | null }[];
+  show: PodcastShow | null;
+};
+
+export type PathfinderPodcastSearchResponse = {
+  data: {
+    podcastSearchV2: {
+      episodesV2: PaginatedResponse<PodcastEpisode>;
+      showsV2: PaginatedResponse<PodcastShow>;
+    };
+  };
+  extensions: Record<string, unknown>;
+};
+
+export type PathfinderPodcastShowResponse = {
+  data: {
+    podcastShow: PodcastShow & {
+      episodesV2: PaginatedResponse<PodcastEpisode>;
+    };
+  };
+  extensions: Record<string, unknown>;
+};
+
+export type PathfinderPodcastShowEpisodesResponse = {
+  data: {
+    podcastShow: {
+      episodesV2: PaginatedResponse<PodcastEpisode>;
+    };
+  };
   extensions: Record<string, unknown>;
 };

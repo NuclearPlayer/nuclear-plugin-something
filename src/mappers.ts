@@ -11,6 +11,11 @@ import type {
 } from '@nuclearplayer/plugin-sdk';
 
 import type {
+  PodcastChannel,
+  PodcastChannelRef,
+  PodcastEpisodeRef,
+} from './podcast-sdk';
+import type {
   AlbumResponseWrapper,
   AlbumUnion,
   Artist,
@@ -20,6 +25,8 @@ import type {
   CoverArtSource,
   FullDate,
   PlaylistV2,
+  PodcastEpisode,
+  PodcastShow,
   ReleaseItem,
   Track as SourceTrack,
 } from './types';
@@ -227,3 +234,50 @@ export const mapPlaylistToNuclearPlaylist = (
       }) ?? [],
   };
 };
+
+export const mapPodcastShowToChannelRef = (
+  show: PodcastShow,
+): PodcastChannelRef => ({
+  title: show.name,
+  handle: show.publisher?.name,
+  artwork: mapCoverArtToArtwork(show.images),
+  source: { provider: PROVIDER_ID, id: show.uri },
+});
+
+export const mapPodcastShowToChannel = (
+  show: PodcastShow,
+  episodes: PodcastEpisode[],
+): PodcastChannel => ({
+  title: show.name,
+  handle: show.publisher?.name,
+  description: show.description ?? undefined,
+  artwork: mapCoverArtToArtwork(show.images),
+  episodes: episodes
+    .slice()
+    .sort((a, b) =>
+      (b.releaseDate?.isoString ?? '').localeCompare(
+        a.releaseDate?.isoString ?? '',
+      ),
+    )
+    .map(mapPodcastEpisodeToEpisodeRef),
+  source: { provider: PROVIDER_ID, id: show.uri },
+});
+
+export const mapPodcastEpisodeToEpisodeRef = (
+  ep: PodcastEpisode,
+): PodcastEpisodeRef => ({
+  title: ep.name,
+  description: ep.description ?? undefined,
+  publishedAtIso: ep.releaseDate?.isoString,
+  durationMs: ep.duration?.totalMilliseconds,
+  artwork: mapCoverArtToArtwork(ep.images),
+  channel: ep.show
+    ? {
+        title: ep.show.name,
+        handle: ep.show.publisher?.name,
+        artwork: mapCoverArtToArtwork(ep.show.images),
+        source: { provider: PROVIDER_ID, id: ep.show.uri },
+      }
+    : undefined,
+  source: { provider: PROVIDER_ID, id: ep.uri },
+});

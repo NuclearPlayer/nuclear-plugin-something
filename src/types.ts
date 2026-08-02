@@ -6,7 +6,10 @@ export type OperationName =
   | 'queryArtistDiscographyAll'
   | 'getAlbum'
   | 'fetchPlaylist'
-  | 'fetchPlaylistContents';
+  | 'fetchPlaylistContents'
+  | 'searchDesktop'
+  | 'queryShowMetadataV2'
+  | 'queryPodcastEpisodes';
 
 export type CoverArtSource = {
   height: number | null;
@@ -260,6 +263,8 @@ export type SearchV2 = {
   albumsV2: AlbumOrPrereleasePage;
   artists: PaginatedResponse<ArtistResponseWrapper>;
   tracksV2: PaginatedResponse<SearchResultItemWrapper<TrackResponseWrapper>>;
+  podcasts?: PodcastSearchV2Podcasts;
+  episodes?: PodcastSearchV2Episodes;
 };
 
 export type AlbumUnion = {
@@ -347,7 +352,7 @@ export type PathfinderPlaylistResponse = {
 };
 
 export type PathfinderSearchResponse = {
-  data: { searchV2: SearchV2 };
+  data: { searchV2: SearchV2 & { podcasts?: PodcastSearchV2Podcasts; episodes?: PodcastSearchV2Episodes } };
   extensions: Record<string, unknown>;
 };
 
@@ -358,5 +363,97 @@ export type PathfinderArtistOverviewResponse = {
 
 export type PathfinderGetAlbumResponse = {
   data: { albumUnion: AlbumUnion };
+  extensions: Record<string, unknown>;
+};
+
+export type PodcastCoverArt = {
+  sources: CoverArtSource[];
+};
+
+export type PodcastPublisher = {
+  name: string;
+};
+
+export type PodcastTopic = {
+  __typename?: 'PodcastTopic';
+  title: string;
+  uri: string;
+};
+
+export type PodcastTopics = {
+  items: PodcastTopic[];
+};
+
+export type PodcastShow = {
+  __typename: 'Podcast';
+  id: string;
+  uri: string;
+  name: string;
+  description: string | null;
+  htmlDescription: string | null;
+  publisher: PodcastPublisher | null;
+  coverArt: PodcastCoverArt | null;
+  mediaType?: string;
+  topics?: PodcastTopics;
+  totalEpisodes?: number;
+};
+
+export type PodcastEpisode = {
+  __typename: 'Episode';
+  id: string;
+  uri: string;
+  name: string;
+  description: string | null;
+  duration: { totalMilliseconds: number } | null;
+  releaseDate: { isoString: string } | string | null;
+  coverArt: PodcastCoverArt | null;
+  podcastV2?: { data: PodcastShow };
+  audio?: { items: { url: string }[] };
+};
+
+export type PodcastResponseWrapper = {
+  __typename: 'PodcastResponseWrapper';
+  data: PodcastShow;
+};
+
+export type EpisodeResponseWrapper = {
+  __typename: 'EpisodeResponseWrapper';
+  data: PodcastEpisode;
+};
+
+export type PodcastSearchV2Podcasts = {
+  items: PodcastResponseWrapper[];
+};
+
+export type PodcastSearchV2Episodes = {
+  items: EpisodeResponseWrapper[];
+};
+
+export type PathfinderPodcastSearchResponse = {
+  data: { searchV2: SearchV2 };
+  extensions: Record<string, unknown>;
+};
+
+export type PathfinderPodcastShowResponse = {
+  data: {
+    podcastUnionV2: PodcastShow & {
+      episodesV2: {
+        items: { entity: EpisodeResponseWrapper | { data: PodcastEpisode } }[];
+        totalCount?: number;
+      };
+    };
+  };
+  extensions: Record<string, unknown>;
+};
+
+export type PathfinderPodcastShowEpisodesResponse = {
+  data: {
+    podcastUnionV2: PodcastShow & {
+      episodesV2: {
+        items: { entity: EpisodeResponseWrapper | { data: PodcastEpisode } }[];
+        totalCount?: number;
+      };
+    };
+  };
   extensions: Record<string, unknown>;
 };

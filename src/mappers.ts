@@ -6,10 +6,16 @@ import type {
   ArtworkSet,
   Playlist,
   PlaylistItem,
+  StreamCandidate,
   Track as NuclearTrack,
   TrackRef,
 } from '@nuclearplayer/plugin-sdk';
 
+import type {
+  PodcastChannel,
+  PodcastChannelRef,
+  PodcastEpisodeRef,
+} from './podcast-sdk';
 import type {
   AlbumResponseWrapper,
   AlbumUnion,
@@ -20,6 +26,8 @@ import type {
   CoverArtSource,
   FullDate,
   PlaylistV2,
+  PodcastEpisode,
+  PodcastShow,
   ReleaseItem,
   Track as SourceTrack,
 } from './types';
@@ -225,5 +233,79 @@ export const mapPlaylistToNuclearPlaylist = (
           },
         };
       }) ?? [],
+  };
+};
+
+export const mapPodcastShowToChannelRef = (
+  show: PodcastShow,
+): PodcastChannelRef => ({
+  title: show.name,
+  handle: show.publisher?.name,
+  artwork: mapCoverArtToArtwork(show.coverArt?.sources),
+  source: { provider: PROVIDER_ID, id: show.uri },
+});
+
+export const mapPodcastShowToChannel = (
+  show: PodcastShow,
+  episodes: PodcastEpisode[],
+): PodcastChannel => ({
+  title: show.name,
+  handle: show.publisher?.name,
+  description: show.description ?? show.htmlDescription ?? undefined,
+  artwork: mapCoverArtToArtwork(show.coverArt?.sources),
+  episodes: episodes
+    .slice()
+    .sort((a, b) =>
+      extractReleaseDate(b.releaseDate).localeCompare(
+        extractReleaseDate(a.releaseDate),
+      ),
+    )
+    .map(mapPodcastEpisodeToEpisodeRef),
+  source: { provider: PROVIDER_ID, id: show.uri },
+});
+
+const extractReleaseDate = (value: PodcastEpisode['releaseDate']): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.isoString ?? '';
+};
+
+export const mapPodcastEpisodeToEpisodeRef = (
+  ep: PodcastEpisode,
+): PodcastEpisodeRef => {
+  const previewUrl = ep.audio?.items?.[0]?.url;
+  return {
+    title: ep.name,
+    description: ep.description ?? undefined,
+    publishedAtIso: extractReleaseDate(ep.releaseDate) || undefined,
+    durationMs: ep.duration?.totalMilliseconds,
+    artwork: mapCoverArtToArtwork(ep.coverArt?.sources),
+    channel: ep.podcastV2?.data
+      ? {
+          title: ep.podcastV2.data.name,
+          handle: ep.podcastV2.data.publisher?.name,
+          artwork: mapCoverArtToArtwork(ep.podcastV2.data.coverArt?.sources),
+          source: { provider: PROVIDER_ID, id: ep.podcastV2.data.uri },
+        }
+      : undefined,
+    streamCandidates: previewUrl
+      ? [
+          {
+            id: `${PROVIDER_ID}:${ep.id}:preview`,
+            title: `${ep.name} (30s preview)`,
+            durationMs: 30000,
+            thumbnail: ep.coverArt?.sources?.[0]?.url,
+            stream: {
+              url: previewUrl,
+              protocol: 'https',
+              mimeType: 'audio/mpeg',
+              source: { provider: PROVIDER_ID, id: ep.id },
+            },
+            failed: false,
+            source: { provider: PROVIDER_ID, id: ep.id },
+          },
+        ]
+      : undefined,
+    source: { provider: PROVIDER_ID, id: ep.uri },
   };
 };

@@ -8,12 +8,17 @@ import type {
   ArtistTopTrack,
   NotFound,
   OperationName,
-  PreReleaseResponseWrapper,
   PathfinderArtistOverviewResponse,
   PathfinderGetAlbumResponse,
   PathfinderPlaylistResponse,
+  PathfinderPodcastSearchResponse,
+  PathfinderPodcastShowEpisodesResponse,
+  PathfinderPodcastShowResponse,
   PathfinderSearchResponse,
   PlaylistV2,
+  PodcastEpisode,
+  PodcastShow,
+  PreReleaseResponseWrapper,
   ReleaseItem,
   Track,
 } from './types';
@@ -59,6 +64,13 @@ const OPERATION_HASHES: Record<OperationName, string> = {
   getAlbum: '97dd13a1f28c80d66115a13697a7ffd94fe3bebdb94da42159456e1d82bfee76',
   fetchPlaylist: 'e578eda4f77aae54294a48eac85e2a42ddb203faf6ea12b3fddaec5aa32918a3',
   fetchPlaylistContents: 'c56c706a062f82052d87fdaeeb300a258d2d54153222ef360682a0ee625284d9',
+  // Sniffed from the live Spotify web client on 2026-08-01. The web player
+  // doesn't expose dedicated podcast operations; podcast data lives inside
+  // the general `searchDesktop` response and shows/episodes are loaded
+  // via `queryShowMetadataV2` and `queryPodcastEpisodes` respectively.
+  searchDesktop: 'db61238974d27839a136c9dc02bfdbe3fab7635f21cf85976ebff9a1ee281345',
+  queryShowMetadataV2: '40202837452991ffa80ced96987bc1a937e21d5a89df5bf1fb743110e4d6e93a',
+  queryPodcastEpisodes: '06046f9b939d56c8eb7cdbb687da938de1164c006871aec91dc26e4dc7d8eb08',
 };
 
 type ArtistCacheEntry = {
@@ -191,6 +203,104 @@ export class MetadataClient {
     return response.data.playlistV2;
   }
 
+  async searchPodcastShows(query: string, limit: number): Promise<PodcastShow[]> {
+    // The web player doesn't expose a dedicated podcast search operation.
+    // We use `searchDesktop` (the same call the open.spotify.com search page
+    // makes) and pull the podcasts out of the generic response.
+    const response = await this.pathfinderQuery<PathfinderPodcastSearchResponse>(
+      'searchDesktop',
+      {
+        searchTerm: query,
+        offset: 0,
+        limit: Math.max(limit * 2, 10),
+        numberOfTopResults: 5,
+        includeAudiobooks: true,
+        includeArtistHasConcertsField: false,
+        includePreReleases: true,
+        includeAlbumPreReleases: false,
+        includeAuthors: false,
+        includeEpisodeContentRatingsV2: true,
+        isPrefix: null,
+        sectionFilters: ['GENERIC'],
+      },
+    );
+    const items = response.data.searchV2.podcasts?.items ?? [];
+    return items
+      .map((wrapper) => wrapper.data)
+      .slice(0, limit);
+  }
+
+  async searchPodcastEpisodes(query: string, limit: number): Promise<PodcastEpisode[]> {
+    const response = await this.pathfinderQuery<PathfinderPodcastSearchResponse>(
+      'searchDesktop',
+      {
+        searchTerm: query,
+        offset: 0,
+        limit: Math.max(limit * 2, 10),
+        numberOfTopResults: 5,
+        includeAudiobooks: true,
+        includeArtistHasConcertsField: false,
+        includePreReleases: true,
+        includeAlbumPreReleases: false,
+        includeAuthors: false,
+        includeEpisodeContentRatingsV2: true,
+        isPrefix: null,
+        sectionFilters: ['GENERIC'],
+      },
+    );
+    const items = response.data.searchV2.episodes?.items ?? [];
+    return items
+      .map((wrapper) => wrapper.data)
+      .slice(0, limit);
+  }
+
+  async getPodcastShow(showUri: string): Promise<PodcastShow> {
+    const response = await this.pathfinderQuery<PathfinderPodcastShowResponse>(
+      'queryShowMetadataV2',
+      {
+        uri: showUri,
+        includeContentCapabilityTrait: false,
+        includeEpisodeContentRatingsV2: true,
+      },
+    );
+    return response.data.podcastUnionV2;
+  }
+
+  async getPodcastShowEpisodes(
+    showUri: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<PodcastEpisode[]> {
+    // `queryPodcastEpisodes` returns the same envelope as `queryShowMetadataV2`
+    // (data.podcastUnionV2). The full episode list lives at
+    // `data.podcastUnionV2.episodesV2.items`, each wrapped as
+    // `{ entity: { data: PodcastEpisode } }`.
+    const response = await this.pathfinderQuery<PathfinderPodcastShowEpisodesResponse>(
+      'queryPodcastEpisodes',
+      {
+        uri: showUri,
+        offset,
+        limit,
+        includeEpisodeContentRatingsV2: true,
+      },
+    );
+    const items = response.data.podcastUnionV2?.episodesV2?.items ?? [];
+    return items
+      .map((entry) => {
+        if (entry && 'entity' in entry) {
+          const entity = (entry as { entity: unknown }).entity as
+            | { data?: PodcastEpisode }
+            | PodcastEpisode;
+          if ('data' in entity) {
+            return entity.data as PodcastEpisode;
+          }
+          return entity as unknown as PodcastEpisode;
+        }
+        return entry as unknown as PodcastEpisode;
+      })
+      .slice(0, limit);
+  }
+
   private async executePathfinderRequest(body: string, token: string): Promise<Response> {
     return this.fetch(PATHFINDER_URL, {
       method: 'POST',
@@ -207,13 +317,14 @@ export class MetadataClient {
     operationName: OperationName,
     variables: Record<string, unknown>,
   ): Promise<T> {
+    const hash = OPERATION_HASHES[operationName];
     const body = JSON.stringify({
       operationName,
       variables,
       extensions: {
         persistedQuery: {
           version: 1,
-          sha256Hash: OPERATION_HASHES[operationName],
+          sha256Hash: hash,
         },
       },
     });

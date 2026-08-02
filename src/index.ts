@@ -21,6 +21,7 @@ import {
   mapArtistResponseToRef,
   mapArtistToArtistBio,
   mapPlaylistToNuclearPlaylist,
+  mapPodcastEpisodeToEpisodeRef,
   mapPodcastShowToChannel,
   mapPodcastShowToChannelRef,
   mapReleaseItemToAlbumRef,
@@ -121,11 +122,31 @@ const createProvider = (): MetadataProvider => {
   },
 
   searchPodcastTitles: async (
-    _params: Omit<SearchParams, 'types'>,
+    params: Omit<SearchParams, 'types'>,
   ): Promise<PodcastEpisodeRef[]> => {
-    // Search-by-episode-title requires an additional Pathfinder operation
-    // (searchPodcastEpisodes). Hash not yet known — see TODO in client.ts.
-    return [];
+    try {
+      const episodes = await client!.searchPodcastEpisodes(
+        params.query,
+        params.limit ?? 15,
+      );
+      return episodes.map((ep) => {
+        const mapped = mapPodcastEpisodeToEpisodeRef(ep);
+        return {
+          ...mapped,
+          channel: ep.podcastV2?.data
+            ? {
+                ...(mapped.channel ?? {}),
+                title: ep.podcastV2.data.name,
+                handle: ep.podcastV2.data.publisher?.name,
+                source: { provider: PROVIDER_ID, id: ep.podcastV2.data.uri },
+              }
+            : mapped.channel,
+        };
+      });
+    } catch (err) {
+      console.warn(`[spotify] searchPodcastTitles failed: ${err}`);
+      return [];
+    }
   },
 
   fetchPodcastChannelDetails: async (

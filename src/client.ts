@@ -8,12 +8,17 @@ import type {
   ArtistTopTrack,
   NotFound,
   OperationName,
-  PreReleaseResponseWrapper,
   PathfinderArtistOverviewResponse,
   PathfinderGetAlbumResponse,
   PathfinderPlaylistResponse,
+  PathfinderPodcastSearchResponse,
+  PathfinderPodcastShowEpisodesResponse,
+  PathfinderPodcastShowResponse,
   PathfinderSearchResponse,
   PlaylistV2,
+  PodcastEpisode,
+  PodcastShow,
+  PreReleaseResponseWrapper,
   ReleaseItem,
   Track,
 } from './types';
@@ -59,6 +64,12 @@ const OPERATION_HASHES: Record<OperationName, string> = {
   getAlbum: '97dd13a1f28c80d66115a13697a7ffd94fe3bebdb94da42159456e1d82bfee76',
   fetchPlaylist: 'e578eda4f77aae54294a48eac85e2a42ddb203faf6ea12b3fddaec5aa32918a3',
   fetchPlaylistContents: 'c56c706a062f82052d87fdaeeb300a258d2d54153222ef360682a0ee625284d9',
+  // TODO: sniff these from https://open.spotify.com/search/podcasts and
+  // https://open.spotify.com/show/<id> via mitmproxy. Until they are replaced,
+  // the corresponding podcast methods will log a warning and return [].
+  searchPodcastShows: '0000000000000000000000000000000000000000000000000000000000000000',
+  getPodcastShow: '0000000000000000000000000000000000000000000000000000000000000000',
+  getPodcastShowEpisodes: '0000000000000000000000000000000000000000000000000000000000000000',
 };
 
 type ArtistCacheEntry = {
@@ -191,6 +202,40 @@ export class MetadataClient {
     return response.data.playlistV2;
   }
 
+  async searchPodcastShows(query: string, limit: number): Promise<PodcastShow[]> {
+    const response = await this.pathfinderQuery<PathfinderPodcastSearchResponse>(
+      'searchPodcastShows',
+      {
+        searchTerm: query,
+        limit,
+        offset: 0,
+        includeAudiobooks: false,
+      },
+    );
+    return response.data.podcastSearchV2.showsV2.items;
+  }
+
+  async getPodcastShow(showUri: string): Promise<PodcastShow> {
+    const response = await this.pathfinderQuery<PathfinderPodcastShowResponse>(
+      'getPodcastShow',
+      { uri: showUri, locale: '' },
+    );
+    const { episodesV2: _episodes, ...show } = response.data.podcastShow;
+    return show;
+  }
+
+  async getPodcastShowEpisodes(
+    showUri: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<PodcastEpisode[]> {
+    const response = await this.pathfinderQuery<PathfinderPodcastShowEpisodesResponse>(
+      'getPodcastShowEpisodes',
+      { uri: showUri, offset, limit },
+    );
+    return response.data.podcastShow.episodesV2.items;
+  }
+
   private async executePathfinderRequest(body: string, token: string): Promise<Response> {
     return this.fetch(PATHFINDER_URL, {
       method: 'POST',
@@ -207,13 +252,20 @@ export class MetadataClient {
     operationName: OperationName,
     variables: Record<string, unknown>,
   ): Promise<T> {
+    const hash = OPERATION_HASHES[operationName];
+    const isPlaceholderHash = /^0+$/.test(hash);
+    if (isPlaceholderHash) {
+      throw new Error(
+        `Operation hash for '${operationName}' is not set yet. See TODO in src/client.ts.`,
+      );
+    }
     const body = JSON.stringify({
       operationName,
       variables,
       extensions: {
         persistedQuery: {
           version: 1,
-          sha256Hash: OPERATION_HASHES[operationName],
+          sha256Hash: hash,
         },
       },
     });

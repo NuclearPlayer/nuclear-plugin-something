@@ -9,6 +9,10 @@
   "nuclear": {
     "displayName": "Spotify",
     "category": "metadata",
+    "categories": [
+      "metadata",
+      "playlists"
+    ],
     "icon": {
       "type": "link",
       "link": "https://storage.googleapis.com/pr-newsroom-wp/1/2023/05/Spotify_Primary_Logo_RGB_Green.png"
@@ -33,7 +37,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@nuclearplayer/plugin-sdk": "^2.7.0"
+    "@nuclearplayer/plugin-sdk": "^2.8.3"
   },
   "packageManager": "pnpm@10.16.1",
   "devDependencies": {

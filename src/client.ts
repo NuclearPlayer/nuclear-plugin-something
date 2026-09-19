@@ -13,6 +13,7 @@ import type {
   PathfinderGetAlbumResponse,
   PathfinderPlaylistResponse,
   PathfinderSearchResponse,
+  PlaylistSearchItem,
   PlaylistV2,
   ReleaseItem,
   Track,
@@ -54,6 +55,7 @@ const OPERATION_HASHES: Record<OperationName, string> = {
   searchArtists: '0e6f9020a66fe15b93b3bb5c7e6484d1d8cb3775963996eaede72bac4d97e909',
   searchAlbums: 'a71d2c993fc98e1c880093738a55a38b57e69cc4ce5a8c113e6c5920f9513ee2',
   searchTracks: 'bc1ca2fcd0ba1013a0fc88e6cc4f190af501851e3dafd3e1ef85840297694428',
+  searchPlaylists: 'fc3a690182167dbad20ac7a03f842b97be4e9737710600874cb903f30112ad58',
   queryArtistOverview: '1ac33ddab5d39a3a9c27802774e6d78b9405cc188c6f75aed007df2a32737c72',
   queryArtistDiscographyAll: '5e07d323febb57b4a56a42abbf781490e58764aa45feb6e3dc0591564fc56599',
   getAlbum: '97dd13a1f28c80d66115a13697a7ffd94fe3bebdb94da42159456e1d82bfee76',
@@ -116,6 +118,14 @@ export class MetadataClient {
     return response.data.searchV2.tracksV2.items
       .filter((wrapper) => !isNotFound(wrapper.item.data))
       .map((wrapper) => wrapper.item.data as Track);
+  }
+
+  async searchPlaylists(query: string, limit: number): Promise<PlaylistSearchItem[]> {
+    const response = await this.pathfinderQuery<PathfinderSearchResponse>(
+      'searchPlaylists',
+      searchVariables(query, limit),
+    );
+    return response.data.searchV2.playlists.items;
   }
 
   async getArtistOverview(artistUri: string): Promise<Artist> {

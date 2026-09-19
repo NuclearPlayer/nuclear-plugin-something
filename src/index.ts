@@ -7,6 +7,7 @@ import type {
   NuclearPlugin,
   NuclearPluginAPI,
   PlaylistProvider,
+  PlaylistRef,
   SearchParams,
   Track,
   TrackRef,
@@ -20,6 +21,7 @@ import {
   mapAlbumUnionToAlbum,
   mapArtistResponseToRef,
   mapArtistToArtistBio,
+  mapPlaylistSearchItemToRef,
   mapPlaylistToNuclearPlaylist,
   mapReleaseItemToAlbumRef,
   mapRelatedArtistToRef,
@@ -36,7 +38,7 @@ const createProvider = (): MetadataProvider => ({
   id: PROVIDER_ID,
   kind: 'metadata',
   name: decode('U3BvdGlmeQ=='),
-  searchCapabilities: ['artists', 'albums', 'tracks'],
+  searchCapabilities: ['artists', 'albums', 'tracks', 'playlists'],
   artistMetadataCapabilities: [
     'artistBio',
     'artistTopTracks',
@@ -61,6 +63,12 @@ const createProvider = (): MetadataProvider => ({
   ): Promise<Track[]> => {
     const data = await client!.searchTracks(params.query, params.limit ?? 15);
     return data.map(mapTrackToNuclearTrack);
+  },
+  searchPlaylists: async (
+    params: Omit<SearchParams, 'types'>,
+  ): Promise<PlaylistRef[]> => {
+    const data = await client!.searchPlaylists(params.query, params.limit ?? 15);
+    return data.map(mapPlaylistSearchItemToRef);
   },
   fetchArtistBio: async (artistUri: string): Promise<ArtistBio> => {
     const artist = await client!.getArtistOverview(artistUri);

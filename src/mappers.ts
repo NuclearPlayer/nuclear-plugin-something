@@ -6,6 +6,7 @@ import type {
   ArtworkSet,
   Playlist,
   PlaylistItem,
+  PlaylistRef,
   Track as NuclearTrack,
   TrackRef,
 } from '@nuclearplayer/plugin-sdk';
@@ -19,6 +20,7 @@ import type {
   ArtistTopTrack,
   CoverArtSource,
   FullDate,
+  PlaylistSearchItem,
   PlaylistV2,
   ReleaseItem,
   Track as SourceTrack,
@@ -158,6 +160,7 @@ export const mapAlbumUnionToAlbum = (
   tracks: albumUnion.tracksV2?.items?.map(({ track }) => ({
     title: track.name,
     artists: track.artists.items.map(mapArtistSimplifiedToRef),
+    durationMs: track.duration.totalMilliseconds,
     artwork: mapCoverArtToArtwork(track.albumOfTrack?.coverArt?.sources),
     source: { provider: PROVIDER_ID, id: track.uri },
   })) ?? [],
@@ -166,6 +169,17 @@ export const mapAlbumUnionToAlbum = (
     : undefined,
   artwork: mapCoverArtToArtwork(albumUnion.coverArt?.sources),
   source: { provider: PROVIDER_ID, id: albumUnion.uri },
+});
+
+export const mapPlaylistSearchItemToRef = (
+  item: PlaylistSearchItem,
+): PlaylistRef => ({
+  id: item.data.uri,
+  name: item.data.name,
+  artwork: mapCoverArtToArtwork(
+    item.data.images.items.flatMap((imageItem) => imageItem.sources),
+  ),
+  source: { provider: PROVIDER_ID, id: item.data.uri },
 });
 
 export const mapPlaylistToNuclearPlaylist = (

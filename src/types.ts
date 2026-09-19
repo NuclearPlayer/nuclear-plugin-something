@@ -2,6 +2,7 @@ export type OperationName =
   | 'searchArtists'
   | 'searchAlbums'
   | 'searchTracks'
+  | 'searchPlaylists'
   | 'queryArtistOverview'
   | 'queryArtistDiscographyAll'
   | 'getAlbum'
@@ -256,10 +257,22 @@ export type AlbumOrPrereleasePage = {
   totalCount: number;
 };
 
+export type PlaylistSearchItem = {
+  data: {
+    __typename: string;
+    uri: string;
+    name: string;
+    description: string;
+    images: { items: PlaylistImageItem[] };
+    ownerV2: { data: PlaylistOwner };
+  };
+};
+
 export type SearchV2 = {
   albumsV2: AlbumOrPrereleasePage;
   artists: PaginatedResponse<ArtistResponseWrapper>;
   tracksV2: PaginatedResponse<SearchResultItemWrapper<TrackResponseWrapper>>;
+  playlists: PaginatedResponse<PlaylistSearchItem>;
 };
 
 export type AlbumUnion = {

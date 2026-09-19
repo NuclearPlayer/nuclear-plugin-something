@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@nuclearplayer/plugin-sdk':
-        specifier: ^2.7.0
-        version: 2.7.0(react@18.3.1)
+        specifier: ^2.8.3
+        version: 2.8.3(react@18.3.1)
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -18,8 +18,8 @@ importers:
 
 packages:
 
-  '@nuclearplayer/plugin-sdk@2.7.0':
-    resolution: {integrity: sha512-rYrANrNiOBd0mFHnStS9dUP3gMMo0WoZWwEAncRtaJoysE6B8+UmIMg/VESLP1XrGlXYIIL91M88yc9/YWNL1Q==}
+  '@nuclearplayer/plugin-sdk@2.8.3':
+    resolution: {integrity: sha512-V8dUYATHt/QCO9wTwKqK//3NkRlXD8MBh7Z+MnyU2yfvXLH0yP6AT/YMHFTiV3R41OulBImMMAanUTFZe1w8hA==}
     peerDependencies:
       react: ^18.3.1
 
@@ -56,7 +56,7 @@ packages:
 
 snapshots:
 
-  '@nuclearplayer/plugin-sdk@2.7.0(react@18.3.1)':
+  '@nuclearplayer/plugin-sdk@2.8.3(react@18.3.1)':
     dependencies:
       class-variance-authority: 0.7.1
       clsx: 2.1.1
